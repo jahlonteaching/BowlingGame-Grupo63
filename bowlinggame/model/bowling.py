@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 
-from bowlinggame.model.bowling_errors import FramePinsExceededError, ExtraRollWithOpenTenthFrameError
+from bowlinggame.model.bowling_errors import FramePinsExceededError, ExtraRollWithOpenTenthFrameError, \
+    RollWithGameCompletedError
 
 
 @dataclass
@@ -32,6 +33,20 @@ class Frame(ABC):
     @abstractmethod
     def score(self) -> int:
         raise NotImplementedError
+
+    def __str__(self) -> str:
+        if len(self.rolls) == 0:
+            return ""
+        elif len(self.rolls) == 1:
+            if self.is_strike():
+                return "X"
+            else:
+                return f"{self.rolls[0].pins} | "
+        elif len(self.rolls) == 2:
+            if self.is_spare():
+                return f"{self.rolls[0].pins} | /"
+            else:
+                return f"{self.rolls[0].pins} | {self.rolls[1].pins}"
 
 
 class NormalFrame(Frame):
@@ -67,7 +82,7 @@ class TenthFrame(Frame):
         self.extra_roll: Roll | None = None
 
     def add_roll(self, pins: int):
-        if not self.is_strike():
+        if not self.is_strike() and not self.is_spare():
             if pins + self.total_pins > 10:
                 raise FramePinsExceededError("A frame's rolls cannot exceed 10 pins")
 
@@ -75,7 +90,10 @@ class TenthFrame(Frame):
             self.rolls.append(Roll(pins))
         else:
             if self.is_strike() or self.is_spare():
-                self.extra_roll = Roll(pins)
+                if self.extra_roll is None:
+                    self.extra_roll = Roll(pins)
+                else:
+                    raise RollWithGameCompletedError("Can't throw a roll with a completed game")
             else:
                 raise ExtraRollWithOpenTenthFrameError("Can't throw an extra roll with an open tenth frame")
 
@@ -92,6 +110,7 @@ class BowlingGame:
         self.frames: list[Frame] = []
         self._init_frames()
         self.current_frame_index: int = 0
+        self.roll_count: int = 0
 
     def _init_frames(self):
         frame = NormalFrame()
@@ -106,13 +125,21 @@ class BowlingGame:
 
         self.frames.append(frame)
 
+    def restart(self):
+        self.frames.clear()
+        self._init_frames()
+        self.current_frame_index = 0
+        self.roll_count = 0
+
     def roll(self, pins: int):
+        self.roll_count += 1
         current_frame: Frame = self.frames[self.current_frame_index]
         current_frame.add_roll(pins)
-        if current_frame.is_strike():
-            self.current_frame_index += 2
-        else:
+        if self.current_frame_index < 9 and (current_frame.is_strike() or len(current_frame.rolls) == 2):
             self.current_frame_index += 1
 
     def score(self) -> int:
         return sum(frame.score() for frame in self.frames)
+
+    def __len__(self) -> int:
+        return self.roll_count

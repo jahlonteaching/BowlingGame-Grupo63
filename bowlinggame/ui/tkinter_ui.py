@@ -157,7 +157,7 @@ class BowlingApp(CTk):
         self.process_file(filename)
 
     def process_file(self, file_name):
-        with open(file_name, mode='r') as file:
+        with open(file_name, mode='r', encoding='utf8') as file:
             line = file.readline()
             rolls = line.split()
             prev_roll = 0
@@ -179,15 +179,8 @@ class BowlingApp(CTk):
             # Update the extra frame
             if i == 9:
                 extra_roll_str = ""
-                if frame.is_strike():
-                    if len(frame.rolls) == 2:
-                        extra_roll_str = f"{frame.rolls[1].pins}"
-
-                    if frame.extra_roll is not None:
-                        extra_roll_str += f" | {frame.extra_roll.pins}"
-                else:
-                    if frame.extra_roll is not None:
-                        extra_roll_str = f"{frame.extra_roll.pins}"
+                if frame.extra_roll is not None:
+                    extra_roll_str = f"{frame.extra_roll.pins}"
 
                 self.frames[i+1].update_rolls(extra_roll_str)
 

@@ -14,3 +14,10 @@ class ExtraRollWithOpenTenthFrameError(BowlingError):
     Raised when an extra roll is added to an open tenth frame
     """
     pass
+
+
+class RollWithGameCompletedError(BowlingError):
+    """
+    Raised when a roll is added with a completed game
+    """
+    pass
